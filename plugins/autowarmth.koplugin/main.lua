@@ -127,6 +127,12 @@ function AutoWarmth:init()
         i = j
     end
 
+    -- On platforms where CLOCK_MONOTONIC does not work correctly (e.g.
+    -- Pocketbook Era 700), UIManager timers fire late. This hook checks 
+    -- on every user interaction whether a warmth change was missed 
+    -- and applies it immediately.
+    UIManager.event_hook:registerWidget("InputEvent", self)
+
     -- schedule recalculation shortly after midnight
     self:scheduleMidnightUpdate()
 end
@@ -542,6 +548,17 @@ function AutoWarmth:scheduleNextWarmthChange(from_resume)
         -- On sane devices this schedule does no harm.
         -- see https://github.com/koreader/koreader/issues/8363
         UIManager:scheduleIn(1.5, self.setWarmth, self, warmth_in_1p5_s, true) -- force warmth one time
+    end
+end
+
+function AutoWarmth:onInputEvent()
+
+    if self.activate == 0 or #self.sched_warmths == 0 or self.sched_warmth_index > #self.sched_warmths then
+        return
+    end
+
+    if SunTime:getTimeInSec() >= self.sched_times_s[self.sched_warmth_index] then
+        self:scheduleNextWarmthChange(false)
     end
 end
 
