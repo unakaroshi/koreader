@@ -176,6 +176,10 @@ function ReaderHighlight:init()
                     this:lookupDict(index)
                     this:onClose(true) -- keep highlight for dictionary lookup
                 end,
+                hold_callback = function()
+                    this.ui.dictionary:onShowDictionaryLookup(util.cleanupSelectedText(this.selected_text.text))
+                    this:onClose()
+                end,
             }
         end,
         ["07_translate"] = function(this, index)
@@ -201,6 +205,10 @@ function ReaderHighlight:init()
                     -- We don't call this:onClose(), crengine will highlight
                     -- search matches on the current page, and self:clear()
                     -- would redraw and remove crengine native highlights
+                end,
+                hold_callback = function()
+                    self.ui.search:onShowFulltextSearchInput(util.cleanupSelectedText(this.selected_text.text))
+                    this:onClose()
                 end,
             }
         end,
@@ -2257,7 +2265,8 @@ function ReaderHighlight:writePdfAnnotation(action, item, content)
     logger.dbg("write to pdf document", action, item)
     local function doAction(action_, page_, item_, content_)
         if action_ == "save" then
-            self.document:saveHighlight(page_, item_, self:getHighlightColor(item_.color))
+            local color = (item_.color and item_.color ~= "gray") and self:getHighlightColor(item_.color) or nil
+            self.document:saveHighlight(page_, item_, color)
         elseif action_ == "delete" then
             self.document:deleteHighlight(page_, item_)
         elseif action_ == "content" then
